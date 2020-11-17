@@ -20,13 +20,13 @@ MVP looks like a script or a service that, given a tweet or a stream of tweets, 
 3. The goal is not to start Twitter fights. The goal is to prototype a counter-speech bot that challenges hate speech.
 
 ## Setup Instructions
-Right now the setup.py doesn't really do anything, so you have to build/install the packages manually.
 1. git clone https://github.com/djfletcher/CounterSpeechBot.git
 2. cd CounterSpeechBot
 3. make requirements
 5. source venv/bin/activate
-6. [temporary] copy and paste our perspective API key into main.py
-7. python main.py
+6. [temporary] copy and paste our perspective API key into main.py. You can get it by logging into the Google Cloud Project console if you are a collaborator on the project.
+	TODO: set up secrets for the repo
+7. python -m counter_speech_bot/main -h
 
 ## Resources
  * [Twitter API docs](https://developer.twitter.com/en/docs/twitter-api)
