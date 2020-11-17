@@ -19,6 +19,15 @@ MVP looks like a script or a service that, given a tweet or a stream of tweets, 
 2. We would want to carefully vet it before having it _actually_ post anything on Twitter. First we can have it log what it _would have_ said in response to tweets that it thinks contain hate speech, and we can see how well it identifies them.
 3. The goal is not to start Twitter fights. The goal is to prototype a counter-speech bot that challenges hate speech.
 
+## Setup Instructions
+Right now the setup.py doesn't really do anything, so you have to build/install the packages manually.
+1. git clone https://github.com/djfletcher/CounterSpeechBot.git
+2. cd CounterSpeechBot
+3. make requirements
+5. source venv/bin/activate
+6. [temporary] copy and paste our perspective API key into main.py
+7. python main.py
+
 ## Resources
  * [Twitter API docs](https://developer.twitter.com/en/docs/twitter-api)
  * [Twitter's Bot Rules](https://help.twitter.com/en/rules-and-policies/twitter-automation)

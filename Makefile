@@ -6,5 +6,5 @@ clean:
 venv:
 	virtualenv -p python3.7 venv
 
-requirements: requirements.txt
+requirements: venv
 	. venv/bin/activate && pip install -r requirements.txt
