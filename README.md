@@ -24,9 +24,21 @@ MVP looks like a script or a service that, given a tweet or a stream of tweets, 
 2. `cd CounterSpeechBot`
 3. `make requirements`
 5. `source venv/bin/activate`
-6. [temporary] copy and paste our perspective API key into main.py. You can get it by logging into the Google Cloud Project console if you are a collaborator on the project.
-	TODO: set up secrets for the repo
-7. `python -m counter_speech_bot/main -h`
+6. Create a .api_keys file containing the necessary keys:
+```
+vi .api_keys
+# paste in keys
+:wq
+chmod 600 .api_keys  # restricts permissions so only you can read this file
+```
+Your .api_keys file should be in the format:
+```
+TWITTER_CONSUMER_KEY=<your key here>
+TWITTER_CONSUMER_SECRET=<your key here>
+TWITTER_BEARER_TOKEN=<your key here>
+PERSPECTIVE_API_KEY=<your key here>
+```
+7. `python -m counter_speech_bot.realtime_bot -h` or `python -m counter_speech_bot.realtime_bot -h`
 
 ## Resources
  * [Twitter API docs](https://developer.twitter.com/en/docs/twitter-api)

@@ -1,5 +1,6 @@
 import argparse
 import json
+import csv
 from collections import defaultdict
 
 import googleapiclient
@@ -8,16 +9,29 @@ from googleapiclient import discovery
 from counter_speech_bot.rate_limiter import RateLimiter
 
 
-PERSPECTIVE_API_KEY = ''  # copy and paste in the key for now
+PERSPECTIVE_API_KEY = 'PERSPECTIVE_API_KEY'
+TWITTER_CONSUMER_KEY = 'TWITTER_CONSUMER_KEY'
+TWITTER_CONSUMER_SECRET = 'TWITTER_CONSUMER_SECRET'
+TWITTER_BEARER_TOKEN = 'TWITTER_BEARER_TOKEN'
 
 
 class CounterSpeechBot:
+    """
+    Loads static data sets rather than realtime streams
+    """
 
     def __init__(self, args):
+        self.get_keys()
         self.tweetset_path = args.tweetset_path
         self.attributes = args.attributes
-        self.service = discovery.build('commentanalyzer', 'v1alpha1', developerKey=PERSPECTIVE_API_KEY)
+        self.service = discovery.build('commentanalyzer', 'v1alpha1', developerKey=self.api_keys[PERSPECTIVE_API_KEY])
         self.errors = defaultdict(lambda: 0)
+
+    def get_keys(self):
+        self.api_keys = {}
+        with open('.api_keys', 'r') as f:
+            for name, value in csv.reader(f, delimiter='='):
+                self.api_keys[name] = value
 
     def get_toxicity(self, request):
         try:
@@ -63,7 +77,7 @@ class CounterSpeechBot:
 if __name__ == '__main__':
     """
     Example command:
-    python -m main --tweetset-path tmp/tweetsets.csv --atributes TOXICITY IDENTITY_ATTACK INSULT
+    python -m counter_speech_bot.tweetset_bot --tweetset-path tmp/tweetsets.csv --atributes TOXICITY IDENTITY_ATTACK INSULT
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--tweetset-path', required=True, help='Path to the file where the tweetset is stored')
