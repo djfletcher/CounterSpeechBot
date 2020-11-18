@@ -24,14 +24,14 @@ MVP looks like a script or a service that, given a tweet or a stream of tweets, 
 2. `cd CounterSpeechBot`
 3. `make requirements`
 5. `source venv/bin/activate`
-6. Create a .api_keys file containing the necessary keys:
+6. Create an `.api_keys` file containing the necessary keys:
 ```
 vi .api_keys
 # paste in keys
 :wq
 chmod 600 .api_keys  # restricts permissions so only you can read this file
 ```
-Your .api_keys file should be in the format:
+Your `.api_keys` file should be in the format:
 ```
 TWITTER_CONSUMER_KEY=<your key here>
 TWITTER_CONSUMER_SECRET=<your key here>
