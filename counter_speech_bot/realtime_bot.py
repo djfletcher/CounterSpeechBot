@@ -16,8 +16,6 @@ from counter_speech_bot.rate_limiter import RateLimiter
 
 
 PERSPECTIVE_API_KEY = 'PERSPECTIVE_API_KEY'
-TWITTER_CONSUMER_KEY = 'TWITTER_CONSUMER_KEY'
-TWITTER_CONSUMER_SECRET = 'TWITTER_CONSUMER_SECRET'
 TWITTER_BEARER_TOKEN = 'TWITTER_BEARER_TOKEN'
 
 
@@ -33,9 +31,12 @@ class CounterSpeechBot:
         self.total_tweet_limit = args.total_tweet_limit
         self.toxic_tweet_limit = args.toxic_tweet_limit
         self.attributes = args.attributes
-        self.toxicity_threshold = args.toxicity_threshold
+
+        self.severe_toxicity_threshold = args.severe_toxicity_threshold
         self.identity_attack_threshold = args.identity_attack_threshold
         self.insult_threshold = args.insult_threshold
+        self.sexually_explicit_exclusion_threshold = args.sexually_explicit_exclusion_threshold
+
         self.include_non_english = args.include_non_english
         self.tracking_file = self.create_tracking_file(args.tracking_file, args.append_to_existing_file)
 
@@ -96,9 +97,15 @@ class CounterSpeechBot:
     def meets_thresholds(self, analysis):
 
         def is_above_threshold(analysis, attribute):
-            arg_name = f"{attribute.lower()}_threshold"
-            threshold = getattr(self, arg_name)
-            return self.get_attribute_score(analysis, attribute) > threshold
+            # TODO: Generalize exclusion logic to be able to exclude any attributes instead of hardcoding it to sexual explicitness
+            if attribute == 'SEXUALLY_EXPLICIT':
+                arg_name = 'sexually_explicit_exclusion_threshold'
+                threshold = getattr(self, arg_name)
+                return self.get_attribute_score(analysis, attribute) < threshold
+            else:
+                arg_name = f"{attribute.lower()}_threshold"
+                threshold = getattr(self, arg_name)
+                return self.get_attribute_score(analysis, attribute) > threshold
 
         return all(is_above_threshold(analysis, attribute) for attribute in self.attributes)
 
@@ -132,17 +139,16 @@ class CounterSpeechBot:
 
     def _strip_entities_from_text(self, text):
         """
-        Removes the '#' hashtag prefix but keeps the hashtag text
-        Replaces all username handles with 'user'
-        Removes urls
+        - Removes the '#' hashtag prefix but keeps the hashtag text
+        - Replaces all username handles with 'user'
+        - Removes urls
         """
         text = text.replace('#', '')
         text = re.sub(r'@\w+', 'user', text)
         text = re.sub(r'http\S+', '', text)
-
         return text
 
-    def main(self):
+    def process_realtime_stream(self):
         rate_limiter = RateLimiter(max_calls_per_second=1, padding_microseconds=1000)
         total_tweet_count = 0
         for tweet in self.sample_realtime_tweets():
@@ -155,7 +161,7 @@ class CounterSpeechBot:
             try:
                 tweet = json.loads(tweet)
             except json.decoder.JSONDecodeError as e:
-                self.error_types_count['JSONDecodeError'] += 1
+                self.error_types_count['JSONDecodeEcrror'] += 1
                 print(f"- Skipping due to JSONDecodeError")
                 continue
 
@@ -177,6 +183,16 @@ class CounterSpeechBot:
 
             total_tweet_count += 1
 
+        return total_tweet_count
+
+    def main(self):
+        try:
+            total_tweet_count = self.process_realtime_stream()
+        except requests.exceptions.ChunkedEncodingError as e:
+            self.error_types_count['ChunkedEncodingError'] += 1
+            print(e)
+            print('\nExiting due to broken connection to Twitter API')
+
         print('\n\n\nSummary:')
         print(f"- Processed {total_tweet_count} tweets")
         print(f"- Identified {len(self.toxic_tweets)} toxic tweets:")
@@ -185,6 +201,7 @@ class CounterSpeechBot:
             print(f"    {idx + 1} {self._format_tweet(tweet)}")
             self._print_formatted_analysis(analysis, padding='      ')
 
+        print('------------------------------------------------')
         if self.tracking_file:
             print(f"A record of these toxic tweets has been saved to '{self.tracking_file}'")
 
@@ -208,15 +225,16 @@ if __name__ == '__main__':
     parser.add_argument(
         '--attributes',
         nargs='+',
-        default=['TOXICITY', 'IDENTITY_ATTACK'],
+        default=['SEVERE_TOXICITY', 'IDENTITY_ATTACK', 'SEXUALLY_EXPLICIT'],
         help='Space-separate list of attributes to analyze for each tweet. See https://support.perspectiveapi.com/s/about-the-api-attributes-and-languages for available attributes'
-             ' | default: TOXICITY IDENTITY_ATTACK',
+             ' | default: SEVERE_TOXICITY IDENTITY_ATTACK',
     )
-    parser.add_argument('--toxicity-threshold', default=0.5, type=float, help='Only process tweets whose toxicity is scored above this threshold. Must be a decimal between 0 and 1. | Default 0.5')
+    parser.add_argument('--severe-toxicity-threshold', default=0.5, type=float, help='Only process tweets whose severe toxicity is scored above this threshold. Must be a decimal between 0 and 1. | Default 0.5')
     parser.add_argument('--identity-attack-threshold', default=0.5, type=float, help='Only process tweets whose identity attack is scored above this threshold. Must be a decimal between 0 and 1. | Default 0.5')
     parser.add_argument('--insult-threshold', default=0.5, type=float, help='Only process tweets whose insult is scored above this threshold. Must be a decimal between 0 and 1. | Default 0.5')
+    parser.add_argument('--sexually-explicit-exclusion-threshold', default=0.5, type=float, help='Only process tweets whose sexual explicitness is scored *below* this threshold. Must be a decimal between 0 and 1. | Default 0.5')
     parser.add_argument('--include-non-english', default=False, action='store_true', help='If true, includes tweets in all languages. By default, only english tweets are processed | Default: false')
-    parser.add_argument('--tracking-file', default='', type=str, help='Path to and and name of file to store tweets identified as toxic | Default: toxic_tweets_{start_timestamp}.txt')
+    parser.add_argument('--tracking-file', default='', type=str, help='Path to and name of file to store tweets identified as toxic | Default: toxic_tweets_{start_timestamp}.txt')
     parser.add_argument('--append-to-existing-file', default=False, action='store_true', help='If true, appends new toxic tweets to an existing file. Requires --tracking-file | Default: false')
     args = parser.parse_args()
     CounterSpeechBot(args).main()
