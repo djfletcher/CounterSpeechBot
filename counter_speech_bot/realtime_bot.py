@@ -245,7 +245,7 @@ if __name__ == '__main__':
         nargs='+',
         default=['SEVERE_TOXICITY', 'IDENTITY_ATTACK', 'SEXUALLY_EXPLICIT'],
         help='Space-separate list of attributes to analyze for each tweet. See https://support.perspectiveapi.com/s/about-the-api-attributes-and-languages for available attributes'
-             ' | default: SEVERE_TOXICITY IDENTITY_ATTACK',
+             ' | default: SEVERE_TOXICITY IDENTITY_ATTACK SEXUALLY_EXPLICIT',
     )
     parser.add_argument('--severe-toxicity-threshold', default=0.5, type=float, help='Only process tweets whose severe toxicity is scored above this threshold. Must be a decimal between 0 and 1. | Default 0.5')
     parser.add_argument('--identity-attack-threshold', default=0.5, type=float, help='Only process tweets whose identity attack is scored above this threshold. Must be a decimal between 0 and 1. | Default 0.5')

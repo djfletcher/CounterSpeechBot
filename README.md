@@ -42,13 +42,17 @@ chmod 600 .api_keys  # restrict permissions so that only you can read the file
 usage: realtime_bot.py [-h] [--total-tweet-limit TOTAL_TWEET_LIMIT]
                        [--toxic-tweet-limit TOXIC_TWEET_LIMIT]
                        [--attributes ATTRIBUTES [ATTRIBUTES ...]]
-                       [--toxicity-threshold TOXICITY_THRESHOLD]
+                       [--severe-toxicity-threshold SEVERE_TOXICITY_THRESHOLD]
                        [--identity-attack-threshold IDENTITY_ATTACK_THRESHOLD]
                        [--insult-threshold INSULT_THRESHOLD]
+                       [--sexually-explicit-exclusion-threshold SEXUALLY_EXPLICIT_EXCLUSION_THRESHOLD]
                        [--include-non-english] [--tracking-file TRACKING_FILE]
                        [--append-to-existing-file]
+                       [--static-reply STATIC_REPLY] [--dynamic-reply]
+
 Randomly samples roughly 1% of publicly available tweets in real-time and
 scores them according to toxicity attributes from the Perspective API
+
 optional arguments:
   -h, --help            show this help message and exit
   --total-tweet-limit TOTAL_TWEET_LIMIT
@@ -61,11 +65,11 @@ optional arguments:
                         Space-separate list of attributes to analyze for each
                         tweet. See https://support.perspectiveapi.com/s/about-
                         the-api-attributes-and-languages for available
-                        attributes | default: TOXICITY IDENTITY_ATTACK
-  --toxicity-threshold TOXICITY_THRESHOLD
-                        Only process tweets whose toxicity is scored above
-                        this threshold. Must be a decimal between 0 and 1. |
-                        Default 0.5
+                        attributes | default: SEVERE_TOXICITY IDENTITY_ATTACK
+  --severe-toxicity-threshold SEVERE_TOXICITY_THRESHOLD
+                        Only process tweets whose severe toxicity is scored
+                        above this threshold. Must be a decimal between 0 and
+                        1. | Default 0.5
   --identity-attack-threshold IDENTITY_ATTACK_THRESHOLD
                         Only process tweets whose identity attack is scored
                         above this threshold. Must be a decimal between 0 and
@@ -74,16 +78,26 @@ optional arguments:
                         Only process tweets whose insult is scored above this
                         threshold. Must be a decimal between 0 and 1. |
                         Default 0.5
+  --sexually-explicit-exclusion-threshold SEXUALLY_EXPLICIT_EXCLUSION_THRESHOLD
+                        Only process tweets whose sexual explicitness is
+                        scored *below* this threshold. Must be a decimal
+                        between 0 and 1. | Default 0.5
   --include-non-english
                         If true, includes tweets in all languages. By default,
                         only english tweets are processed | Default: false
   --tracking-file TRACKING_FILE
-                        Path to and and name of file to store tweets
-                        identified as toxic | Default:
-                        toxic_tweets_{start_timestamp}.txt
+                        Path to and name of file to store tweets identified as
+                        toxic | Default: toxic_tweets_{start_timestamp}.txt
   --append-to-existing-file
                         If true, appends new toxic tweets to an existing file.
                         Requires --tracking-file | Default: false
+  --static-reply STATIC_REPLY
+                        Log this as a potential reply to all toxic tweets |
+                        Default: `This comment could be considered an identity
+                        attack on a group of people`
+  --dynamic-reply       **This flag is not yet supported** Generate an
+                        intelligent, dynamic reply to toxic tweets based on
+                        the content of each tweet
 ```
 
 ## TODO
