@@ -1,11 +1,11 @@
 # CounterSpeechBot
-This project prototypes a Twitter bot that counters hate speech. Currently it supports two modes: stream processing and batch processing. In the stream processing mode, the script samples roughly 1% of publicly available tweets in real-time. In the batch processing mode, the script loads a user-provided dataset into memory for processing. In both modes, the script scores tweets according to toxicity attributes from the [Perspective API](https://www.perspectiveapi.com/) and any tweets that meet the user-configured thresholds are persisted to a local file.
+This project prototypes a Twitter bot that counters hate speech. Currently it supports two modes: stream processing and batch processing. In the stream processing mode, the script samples roughly 1% of publicly available tweets in real-time. In the batch processing mode, the script loads a user-provided dataset into memory for processing. In both modes the script scores tweets according to toxicity attributes from the [Perspective API](https://www.perspectiveapi.com/), and any tweets that meet the user-configured thresholds are persisted to a local file.
 
 The bot does not post any replies yet. Currently, it logs potential replies for review by humans.
 
 ## Context
 
-Social media regulation and internet policy in the US are very much a work in progress. One of the most hotly debated topics is censorship on social media, because social media companies have struggled to maintain healthy civic discourses on their platforms while also granting a measure of "free speech" rights to their users. One possible resolution to this thorny issue might be found in [counter-speech](https://en.wikipedia.org/wiki/Counterspeech): studies have shown that counter-speech may be an effective alternative to censorship at reducing the amount of hate speech on social media:
+Social media regulation and internet policy in the US are very much a work in progress. One of the most hotly debated topics is censorship on social media, because social media companies have struggled to maintain healthy civic discourses on their platforms while also granting a measure of "free speech" rights to their users. One possible resolution to this issue might be found in [counter-speech](https://en.wikipedia.org/wiki/Counterspeech): studies have shown that counter-speech may be an effective alternative to censorship at reducing the amount of hate speech on social media:
 > In one of the only studies that explicitly detects naturally occurring counter-speech on social media, Mathew et al. [1](#citations) find that counter-speech comments receive much more likes and engagement than other comments and may prompt producers of hate speech to apologize or change their behavior. [2](#citations)
 
 The idea for this project was conceived as a result of learning of that study and then reading [this Forbes opinion article](https://www.forbes.com/sites/kalevleetaru/2017/02/04/fighting-social-media-hate-speech-with-ai-powered-bots/?sh=2386d90527b1), which proposed deploying AI bots en masse to fight online hate speech. I find the idea really intriguing, especially in an era where social media policy and the efficacy of online censorship is hotly debated.
@@ -29,7 +29,7 @@ Your `.api_keys` file should be in the format:
 TWITTER_BEARER_TOKEN=<your key here>
 PERSPECTIVE_API_KEY=<your key here>
 ```
-Make sure you keep these keys secret:
+  Make sure you keep these keys secret:
 ```
 chmod 600 .api_keys  # restrict permissions so that only you can read the file
 ```
