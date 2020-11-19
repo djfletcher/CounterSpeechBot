@@ -40,6 +40,11 @@ class CounterSpeechBot:
         self.include_non_english = args.include_non_english
         self.tracking_file = self.create_tracking_file(args.tracking_file, args.append_to_existing_file)
 
+        self.static_reply = args.static_reply
+        self.dynamic_reply = args.dynamic_reply
+        if self.dynamic_reply:
+            raise Exception('The --dynamic-reply option is not yet supported. Please use --static-reply instead.')
+
         self.service = discovery.build(
             'commentanalyzer', 'v1alpha1', developerKey=self.api_keys[PERSPECTIVE_API_KEY]
         )
@@ -96,7 +101,7 @@ class CounterSpeechBot:
 
     def meets_thresholds(self, analysis):
 
-        def is_above_threshold(analysis, attribute):
+        def meets_threshold(analysis, attribute):
             # TODO: Generalize exclusion logic to be able to exclude any attributes instead of hardcoding it to sexual explicitness
             if attribute == 'SEXUALLY_EXPLICIT':
                 arg_name = 'sexually_explicit_exclusion_threshold'
@@ -107,7 +112,7 @@ class CounterSpeechBot:
                 threshold = getattr(self, arg_name)
                 return self.get_attribute_score(analysis, attribute) > threshold
 
-        return all(is_above_threshold(analysis, attribute) for attribute in self.attributes)
+        return all(meets_threshold(analysis, attribute) for attribute in self.attributes)
 
     def create_tracking_file(self, tracking_file, append_to_existing_file):
         if not tracking_file:
@@ -115,9 +120,7 @@ class CounterSpeechBot:
 
         filepath = Path(tracking_file)
         if filepath.exists() and not append_to_existing_file:
-            raise Exception(
-                f"File already exists at {tracking_file}! Either remove the --tracking-file option or set --append-to-existing-file to true"
-            )
+            raise Exception(f"File already exists at {tracking_file}! Either remove the --tracking-file option or set --append-to-existing-file to true")
 
         filepath.touch()
         print(f"Created file to track toxic tweets at '{tracking_file}'")
@@ -125,8 +128,19 @@ class CounterSpeechBot:
 
     def track(self, toxic_tweet):
         self.toxic_tweets.append(toxic_tweet)
+        reply = self.generate_reply(toxic_tweet)
         with open(self.tracking_file, 'a') as f:
-            f.write(json.dumps(toxic_tweet._asdict()) + '\n')
+            record = {**toxic_tweet._asdict(), 'potential_reply': reply}
+            f.write(json.dumps(record) + '\n')
+
+    def generate_reply(self, toxic_tweet):
+        if self.static_reply:
+            return self.static_reply
+        return self.generate_dynamic_reply(toxic_tweet)
+
+    def generate_dynamic_reply(self, toxic_tweet):
+        # TODO
+        raise NotImplementedError()
 
     def _format_tweet(self, tweet):
         author = tweet['includes']['users'][0]['name']
@@ -150,10 +164,10 @@ class CounterSpeechBot:
 
     def process_realtime_stream(self):
         rate_limiter = RateLimiter(max_calls_per_second=1, padding_microseconds=1000)
-        total_tweet_count = 0
+        self.total_tweet_count = 0
         for tweet in self.sample_realtime_tweets():
             if (
-                self.total_tweet_limit and total_tweet_count >= self.total_tweet_limit
+                self.total_tweet_limit and self.total_tweet_count >= self.total_tweet_limit
                 or self.toxic_tweet_limit and len(self.toxic_tweets) >= self.toxic_tweet_limit
             ):
                 break
@@ -173,33 +187,37 @@ class CounterSpeechBot:
             rate_limiter.wait()
             analysis = self.get_toxicity(tweet)
             if analysis and self.meets_thresholds(analysis):
+                toxic_tweet = ToxicTweet(tweet, analysis)
                 print("===================MEETS THRESHOLDS===================")
                 print(self._format_tweet(tweet))
-                print(self._print_formatted_analysis(analysis))
+                self._print_formatted_analysis(analysis)
+                print(f"\nPotential reply: '{self.generate_reply(toxic_tweet)}'")
                 print("======================================================")
-                self.track(ToxicTweet(tweet, analysis))
+                self.track(toxic_tweet)
             else:
                 print(self._format_tweet(tweet))
 
-            total_tweet_count += 1
-
-        return total_tweet_count
+            self.total_tweet_count += 1
 
     def main(self):
         try:
-            total_tweet_count = self.process_realtime_stream()
+            self.process_realtime_stream()
         except requests.exceptions.ChunkedEncodingError as e:
             self.error_types_count['ChunkedEncodingError'] += 1
-            print(e)
+            print(f"\n{e}")
             print('\nExiting due to broken connection to Twitter API')
+        except KeyboardInterrupt:
+            print('KeyboardInterrupt')
 
         print('\n\n\nSummary:')
-        print(f"- Processed {total_tweet_count} tweets")
+        print(f"- Processed {self.total_tweet_count} tweets")
         print(f"- Identified {len(self.toxic_tweets)} toxic tweets:")
-        for idx, (tweet, analysis) in enumerate(self.toxic_tweets):
+        for idx, toxic_tweet in enumerate(self.toxic_tweets):
+            tweet, analysis = toxic_tweet
             print('------------------------------------------------')
             print(f"    {idx + 1} {self._format_tweet(tweet)}")
             self._print_formatted_analysis(analysis, padding='      ')
+            print(f"\nPotential reply: '{self.generate_reply(toxic_tweet)}'")
 
         print('------------------------------------------------')
         if self.tracking_file:
@@ -214,7 +232,7 @@ class CounterSpeechBot:
 if __name__ == '__main__':
     """
     Example command:
-    python -m main --atributes TOXICITY IDENTITY_ATTACK INSULT --toxicity-threshold 0.75
+    python -m counter_speech_bot.realtime_bot --atributes TOXICITY IDENTITY_ATTACK INSULT --toxicity-threshold 0.75
     """
     parser = argparse.ArgumentParser(
         description='Randomly samples roughly 1% of publicly available tweets in real-time and scores them according to '
@@ -236,5 +254,13 @@ if __name__ == '__main__':
     parser.add_argument('--include-non-english', default=False, action='store_true', help='If true, includes tweets in all languages. By default, only english tweets are processed | Default: false')
     parser.add_argument('--tracking-file', default='', type=str, help='Path to and name of file to store tweets identified as toxic | Default: toxic_tweets_{start_timestamp}.txt')
     parser.add_argument('--append-to-existing-file', default=False, action='store_true', help='If true, appends new toxic tweets to an existing file. Requires --tracking-file | Default: false')
+    parser.add_argument(
+        '--static-reply',
+        type=str,
+        default='This comment could be considered an identity attack on a group of people',
+        help='Log this as a potential reply to all toxic tweets | Default: `This comment could be considered an identity attack on a group of people`',
+    )
+    parser.add_argument('--dynamic-reply', default=False, action='store_true', help='**This flag is not yet supported**\nGenerate an intelligent, dynamic reply to toxic tweets based on the content of each tweet')
+
     args = parser.parse_args()
     CounterSpeechBot(args).main()
