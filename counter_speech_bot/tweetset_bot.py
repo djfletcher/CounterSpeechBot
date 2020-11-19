@@ -79,7 +79,7 @@ if __name__ == '__main__':
     Example command:
     python -m counter_speech_bot.tweetset_bot --tweetset-path tmp/tweetsets.csv --atributes TOXICITY IDENTITY_ATTACK INSULT
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Loads static data sets for processing, rather than realtime streams')
     parser.add_argument('--tweetset-path', required=True, help='Path to the file where the tweetset is stored')
     parser.add_argument(
         '--attributes',

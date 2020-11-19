@@ -96,13 +96,14 @@ if __name__ == '__main__':
     Example command:
     python -m main --atributes TOXICITY IDENTITY_ATTACK INSULT
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--tweet-limit', default=None, type=int, help='Optional: Quit when the specified number of tweets have been processed.')
+    parser = argparse.ArgumentParser(description='Samples 1% of realtime tweets and scores them according to toxicity attributes from the Perspective API')
+    parser.add_argument('--tweet-limit', default=None, type=int, help='Quit when the specified number of tweets have been processed.')
     parser.add_argument(
         '--attributes',
         nargs='+',
         default=['TOXICITY', 'IDENTITY_ATTACK'],
-        help='List of attributes to analyze for each tweet. See https://support.perspectiveapi.com/s/about-the-api-attributes-and-languages',
+        help='List of attributes to analyze for each tweet. See https://support.perspectiveapi.com/s/about-the-api-attributes-and-languages\n'
+             'default: TOXICITY IDENTITY_ATTACK',
     )
     args = parser.parse_args()
     CounterSpeechBot(args).main()

@@ -38,7 +38,7 @@ TWITTER_CONSUMER_SECRET=<your key here>
 TWITTER_BEARER_TOKEN=<your key here>
 PERSPECTIVE_API_KEY=<your key here>
 ```
-7. `python -m counter_speech_bot.realtime_bot -h` or `python -m counter_speech_bot.realtime_bot -h`
+7. `python -m counter_speech_bot.realtime_bot -h` or `python -m counter_speech_bot.tweetset_bot -h`
 
 ## Resources
  * [Twitter API docs](https://developer.twitter.com/en/docs/twitter-api)
