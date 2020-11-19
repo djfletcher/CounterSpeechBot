@@ -1,5 +1,5 @@
 # CounterSpeechBot
-TLDR: Prototype a Twitter bot that counters hate speech
+*TLDR:* Prototype a Twitter bot that counters hate speech
 
 ## Context
 
@@ -39,12 +39,18 @@ TWITTER_BEARER_TOKEN=<your key here>
 PERSPECTIVE_API_KEY=<your key here>
 ```
 7. `python -m counter_speech_bot.realtime_bot -h` or `python -m counter_speech_bot.tweetset_bot -h`
+8. The realtime bot is capable of writing a list of toxic tweets to a local file for persistent storage
+
+## TODO
+- Concatenate text that spans multiple tweets and send it to analyzer as one text
+- Catch when we exceed rate limit and sleep for a period of time
+- Handle interrupted connections to Twitter API: https://stackoverflow.com/questions/49064398/requests-exceptions-chunkedencodingerror-connection-broken-incompleteread0
 
 ## Resources
  * [Twitter API docs](https://developer.twitter.com/en/docs/twitter-api)
  * [Twitter's Bot Rules](https://help.twitter.com/en/rules-and-policies/twitter-automation)
  * [Twitter's "hateful conduct" policy](https://help.twitter.com/en/rules-and-policies/hateful-conduct-policy)
- * [https://www.perspectiveapi.com/](https://www.perspectiveapi.com/) - an open source ML model for identifying "toxicity". It looks like you can also query it via API by setting up a Google Cloud Project. The model that this API uses under the hood is documented at [https://conversationai.github.io/](https://conversationai.github.io/)
+ * [https://www.perspectiveapi.com/](https://www.perspectiveapi.com/) - an open source ML model for identifying "toxicity". Requires setting up a Google Cloud Project. The model that this API uses under the hood is documented at [https://conversationai.github.io/](https://conversationai.github.io/)
 
 ## Citations
 1. [https://arxiv.org/abs/1808.04409](https://arxiv.org/abs/1808.04409)

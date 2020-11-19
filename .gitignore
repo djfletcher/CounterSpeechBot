@@ -130,3 +130,6 @@ dmypy.json
 
 # secrets
 .api_keys
+
+# local files created during processing
+toxic_tweets_*

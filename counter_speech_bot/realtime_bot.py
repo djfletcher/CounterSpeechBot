@@ -1,9 +1,12 @@
-import argparse
-import json
-import csv
 from collections import defaultdict
-from typing import NamedTuple
+from pathlib import Path
 from typing import Dict
+from typing import NamedTuple
+import argparse
+import csv
+import datetime
+import json
+import re
 
 import googleapiclient
 from googleapiclient import discovery
@@ -34,6 +37,7 @@ class CounterSpeechBot:
         self.identity_attack_threshold = args.identity_attack_threshold
         self.insult_threshold = args.insult_threshold
         self.include_non_english = args.include_non_english
+        self.tracking_file = self.create_tracking_file(args.tracking_file, args.append_to_existing_file)
 
         self.service = discovery.build(
             'commentanalyzer', 'v1alpha1', developerKey=self.api_keys[PERSPECTIVE_API_KEY]
@@ -49,10 +53,10 @@ class CounterSpeechBot:
                 self.api_keys[name] = value
 
     def get_toxicity(self, tweet):
-        # API documentation: https://support.perspectiveapi.com/s/about-the-api-methods
+        """ API documentation: https://support.perspectiveapi.com/s/about-the-api-methods """
         request = {
             'comment': {
-                'text': tweet['data']['text'],
+                'text': self._strip_entities_from_text(tweet['data']['text']),
             },
             'requestedAttributes': {attribute: {} for attribute in self.attributes},
             'spanAnnotations': True
@@ -98,6 +102,25 @@ class CounterSpeechBot:
 
         return all(is_above_threshold(analysis, attribute) for attribute in self.attributes)
 
+    def create_tracking_file(self, tracking_file, append_to_existing_file):
+        if not tracking_file:
+            tracking_file = f"toxic_tweets_{datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')}.txt"
+
+        filepath = Path(tracking_file)
+        if filepath.exists() and not append_to_existing_file:
+            raise Exception(
+                f"File already exists at {tracking_file}! Either remove the --tracking-file option or set --append-to-existing-file to true"
+            )
+
+        filepath.touch()
+        print(f"Created file to track toxic tweets at '{tracking_file}'")
+        return tracking_file
+
+    def track(self, toxic_tweet):
+        self.toxic_tweets.append(toxic_tweet)
+        with open(self.tracking_file, 'a') as f:
+            f.write(json.dumps(toxic_tweet._asdict()) + '\n')
+
     def _format_tweet(self, tweet):
         author = tweet['includes']['users'][0]['name']
         text = tweet['data']['text']
@@ -106,6 +129,18 @@ class CounterSpeechBot:
     def _print_formatted_analysis(self, analysis, padding=''):
         for attribute in self.attributes:
             print(f"{padding}- {attribute}: {self.get_attribute_score(analysis, attribute)}")
+
+    def _strip_entities_from_text(self, text):
+        """
+        Removes the '#' hashtag prefix but keeps the hashtag text
+        Replaces all username handles with 'user'
+        Removes urls
+        """
+        text = text.replace('#', '')
+        text = re.sub(r'@\w+', 'user', text)
+        text = re.sub(r'http\S+', '', text)
+
+        return text
 
     def main(self):
         rate_limiter = RateLimiter(max_calls_per_second=1, padding_microseconds=1000)
@@ -136,8 +171,7 @@ class CounterSpeechBot:
                 print(self._format_tweet(tweet))
                 print(self._print_formatted_analysis(analysis))
                 print("======================================================")
-                # keep track of these
-                self.toxic_tweets.append(ToxicTweet(tweet, analysis))
+                self.track(ToxicTweet(tweet, analysis))
             else:
                 print(self._format_tweet(tweet))
 
@@ -151,9 +185,13 @@ class CounterSpeechBot:
             print(f"    {idx + 1} {self._format_tweet(tweet)}")
             self._print_formatted_analysis(analysis, padding='      ')
 
+        if self.tracking_file:
+            print(f"A record of these toxic tweets has been saved to '{self.tracking_file}'")
+
         print(f"- Encountered {sum(self.error_types_count.values())} errors:")
         for error_type, count in self.error_types_count.items():
             print(f"    - {count} - {error_type}")
+
 
 
 if __name__ == '__main__':
@@ -167,16 +205,18 @@ if __name__ == '__main__':
     )
     parser.add_argument('--total-tweet-limit', default=None, type=int, help='Quit when the specified number of tweets have been processed.')
     parser.add_argument('--toxic-tweet-limit', default=None, type=int, help='Quit when the specified number of toxic tweets have been processed.')
-    parser.add_argument('--toxicity-threshold', default=0.0, type=float, help='Only process tweets whose toxicity is scored above this threshold')
-    parser.add_argument('--identity-attack-threshold', default=0.0, type=float, help='Only process tweets whose identity attack is scored above this threshold')
-    parser.add_argument('--insult-threshold', default=0.0, type=float, help='Only process tweets whose insult is scored above this threshold')
     parser.add_argument(
         '--attributes',
         nargs='+',
         default=['TOXICITY', 'IDENTITY_ATTACK'],
-        help='List of attributes to analyze for each tweet. See https://support.perspectiveapi.com/s/about-the-api-attributes-and-languages\n'
-             'default: TOXICITY IDENTITY_ATTACK',
+        help='Space-separate list of attributes to analyze for each tweet. See https://support.perspectiveapi.com/s/about-the-api-attributes-and-languages for available attributes'
+             ' | default: TOXICITY IDENTITY_ATTACK',
     )
-    parser.add_argument('--include-non-english', default=False, type=bool, help='If true, includes tweets in all languages. By default, only english tweets are processed.')
+    parser.add_argument('--toxicity-threshold', default=0.5, type=float, help='Only process tweets whose toxicity is scored above this threshold. Must be a decimal between 0 and 1. | Default 0.5')
+    parser.add_argument('--identity-attack-threshold', default=0.5, type=float, help='Only process tweets whose identity attack is scored above this threshold. Must be a decimal between 0 and 1. | Default 0.5')
+    parser.add_argument('--insult-threshold', default=0.5, type=float, help='Only process tweets whose insult is scored above this threshold. Must be a decimal between 0 and 1. | Default 0.5')
+    parser.add_argument('--include-non-english', default=False, action='store_true', help='If true, includes tweets in all languages. By default, only english tweets are processed | Default: false')
+    parser.add_argument('--tracking-file', default='', type=str, help='Path to and and name of file to store tweets identified as toxic | Default: toxic_tweets_{start_timestamp}.txt')
+    parser.add_argument('--append-to-existing-file', default=False, action='store_true', help='If true, appends new toxic tweets to an existing file. Requires --tracking-file | Default: false')
     args = parser.parse_args()
     CounterSpeechBot(args).main()
