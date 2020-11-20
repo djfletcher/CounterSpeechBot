@@ -163,7 +163,7 @@ class CounterSpeechBot:
         return text
 
     def process_realtime_stream(self):
-        rate_limiter = RateLimiter(max_calls_per_second=1, padding_microseconds=1000)
+        rate_limiter = RateLimiter(max_calls_per_second=1, padding_microseconds=10000)
         self.total_tweet_count = 0
         for tweet in self.sample_realtime_tweets():
             if (
@@ -235,8 +235,9 @@ if __name__ == '__main__':
     python -m counter_speech_bot.realtime_bot --atributes TOXICITY IDENTITY_ATTACK INSULT --toxicity-threshold 0.75
     """
     parser = argparse.ArgumentParser(
-        description='Randomly samples roughly 1% of publicly available tweets in real-time and scores them according to '
-                    'toxicity attributes from the Perspective API'
+        description='Randomly samples roughly 1% of publicly available tweets in real-time, scores them according to '
+                    'toxicity attributes from the Perspective API, and persists toxic tweets to a local file along with '
+                    'a potential reply to each.'
     )
     parser.add_argument('--total-tweet-limit', default=None, type=int, help='Quit when the specified number of tweets have been processed.')
     parser.add_argument('--toxic-tweet-limit', default=None, type=int, help='Quit when the specified number of toxic tweets have been processed.')

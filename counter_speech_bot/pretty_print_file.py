@@ -35,7 +35,7 @@ class PrettyPrintToxicTweets:
                 self.pretty_print(toxic_tweet_dict, count)
                 count += 1
 
-        print(f"\n\nPretty printed {count} toxic tweets")
+        print(f"\n\nPretty printed {count - 1} toxic tweets")
 
 
 if __name__ == '__main__':
